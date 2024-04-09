@@ -1,0 +1,164 @@
+---
+title: "digital health system in africa"
+output: html_document
+date: "2024-02-10"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(readxl)
+myfile = read_xlsx("C:/Users/USUARIO/Desktop/analisisdigitalhealthafrica2.xlsx")
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure}
+library(tidytext)
+library(dplyr)
+tidy_digital_health<- myfile %>%
+    select(Year,Title) %>%
+    unnest_tokens("word", Title)
+```
+
+```{r}
+data("stop_words")
+
+top_words<-
+   tidy_digital_health %>%
+      anti_join(stop_words) %>%
+        filter(!(word=="in"|
+                 word=="the"|
+                 word=="of"|
+                 word=="on")) %>%
+            count(word) %>%
+              arrange(desc(n))
+```
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+top_words %>%
+  slice(1:20) %>%
+    ggplot(aes(x=reorder(word, -n), y=n, fill=word))+
+      geom_bar(stat="identity")+
+        theme_minimal()+
+        theme(axis.text.x = 
+            element_text(angle = 60, hjust = 1, size=13))+
+        theme(plot.title = 
+            element_text(hjust = 0.5, size=18))+
+          ylab("Frequency")+
+          xlab("")+
+          ggtitle("Most Frequent Words search: Digital Health in Africa")+
+          guides(fill=FALSE)
+```
+
+
+```{r}
+Pub_year <- myfile$Year
+
+```
+
+```{r}
+hist(myfile$Year,xlab="cantidad",ylab="Absolut",main="Papers on Digital Health in Africa by year, PubMed", col="blue")
+```
+
+
+
+```{r}
+tidy_health_tfidf<- myfile %>%
+    select(Year,Title) %>%
+      unnest_tokens("word", Title) %>%
+        anti_join(stop_words) %>%
+           count(word, Year) %>%
+              bind_tf_idf(word, Year, n)
+```
+```{r}
+top_tfidf<-tidy_health_tfidf %>%
+  arrange(desc(tf_idf))
+
+top_tfidf$word[1]
+```
+```{r}
+digital_health_dictionary<-c("health","digital","transformation","Artifical Intelligence")
+```
+
+```{r}
+library(stringr)
+```
+
+```{r}
+digital_health_tweets<-myfile[str_detect(myfile$Title, paste(digital_health_dictionary, collapse="|")),]
+```
+
+```{r}
+library(tidytext)
+head(get_sentiments("bing"))
+```
+```{r}
+digital_health_sentiment <- tidy_digital_health %>%
+  inner_join(get_sentiments("bing")) %>%
+    count(Year, sentiment) 
+
+head(digital_health_sentiment)
+```
+```{r}
+tidy_digital_health$date<-as.Date(tidy_digital_health$Year, format="%Y")
+```
+
+```{r}
+health_sentiment_plot <-
+  tidy_digital_health %>%
+    inner_join(get_sentiments("bing")) %>% 
+      filter(sentiment=="negative") %>%
+          count(Year, sentiment)
+```
+```{r}
+ggplot(health_sentiment_plot, aes(x=Year, y=n))+
+  geom_line(color="red", size=.5)+
+    theme_minimal()+
+    theme(axis.text.x = 
+            element_text(angle = 60, hjust = 1, size=13))+
+    theme(plot.title = 
+            element_text(hjust = 0.5, size=18))+
+      ylab("Number of Negative Words")+
+      xlab("Year")+
+      ggtitle("Negative Sentiment in Digital Health in Africa papers")+
+      theme(aspect.ratio=1/4)
+```
+
+```{r}
+health_sentiment_plot2 <-
+  tidy_digital_health %>%
+    inner_join(get_sentiments("bing")) %>% 
+      filter(sentiment=="positive") %>%
+          count(Year, sentiment)
+```
+
+```{r}
+ggplot(health_sentiment_plot2, aes(x=Year, y=n))+
+  geom_line(color="red", size=.5)+
+    theme_minimal()+
+    theme(axis.text.x = 
+            element_text(angle = 60, hjust = 1, size=13))+
+    theme(plot.title = 
+            element_text(hjust = 0.5, size=18))+
+      ylab("Number of Positive Words")+
+      xlab("Year")+
+      ggtitle("Positive Sentiment in Digital Health in Africa papers")
+```   
+
+
+
